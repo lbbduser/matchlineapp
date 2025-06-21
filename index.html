@@ -1,153 +1,439 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Match Line App</title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { font-family: sans-serif; background: #0f0f0f; color: white; padding: 20px; }
-    h2 { color: #00e676; }
-    textarea, input, select, button {
-      width: 100%; margin: 5px 0; padding: 10px;
-      border-radius: 8px; border: none;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Match Line App - Premium UI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #121212;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  header {
+    width: 100%; max-width: 480px;
+    background: linear-gradient(90deg, #0ff, #08f);
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: #000;
+    text-align: center;
+    user-select: none;
+    letter-spacing: 1.2px;
+    box-shadow: 0 2px 12px #0ff9;
+  }
+  main {
+    flex: 1;
+    width: 100%; max-width: 480px;
+    background: #1e1e1e;
+    margin: 20px 0 30px;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 18px #00e6ff44;
+    position: relative;
+  }
+  .tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    user-select: none;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    background: #222;
+    color: #bbb;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  .tab.active {
+    background: #0ff;
+    color: #000;
+    box-shadow: 0 0 10px #0ff;
+  }
+  section {
+    display: none;
+    animation: fadeIn 0.5s ease forwards;
+  }
+  section.active {
+    display: block;
+  }
+
+  /* Form Elements */
+  input[type="password"],
+  input[type="date"],
+  input[type="file"],
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    resize: vertical;
+    font-size: 1rem;
+    background: #222;
+    color: #eee;
+    box-shadow: inset 0 0 6px #0ff4;
+    margin-bottom: 15px;
+    transition: box-shadow 0.3s;
+  }
+  input[type="password"]:focus,
+  input[type="date"]:focus,
+  input[type="file"]:focus,
+  textarea:focus {
+    box-shadow: inset 0 0 10px #0ff;
+  }
+  button {
+    width: 100%;
+    padding: 14px;
+    background: #0ff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #000;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    user-select: none;
+    box-shadow: 0 0 8px #0ff;
+  }
+  button:hover {
+    background: #08c;
+    color: #0ff;
+    box-shadow: 0 0 18px #0ff;
+  }
+  button:active {
+    background: #05a;
+    box-shadow: 0 0 25px #0ff;
+  }
+
+  /* Status messages */
+  .status {
+    margin-top: 8px;
+    font-weight: 600;
+    text-align: center;
+    min-height: 1.3rem;
+    user-select: none;
+  }
+  .status.success {
+    color: #4caf50;
+  }
+  .status.error {
+    color: #ef5350;
+  }
+  .status.info {
+    color: #00bcd4;
+  }
+
+  /* Hide file input */
+  input[type="file"] {
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
+  /* Textarea monospace for lines */
+  textarea {
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.3;
+    min-height: 140px;
+  }
+
+  /* Copy button */
+  .copy-btn {
+    margin-top: 10px;
+  }
+
+  /* Scroll inside textarea */
+  textarea {
+    overflow-y: auto;
+  }
+
+  /* Mobile-friendly tweaks */
+  @media (max-width: 480px) {
+    main {
+      margin: 15px 10px 25px;
+      padding: 15px;
     }
-    .section { background: #1e1e1e; padding: 15px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 0 10px #00e67655; }
-    .hidden { display: none; }
-    .success { background: #2e7d32; color: white; padding: 10px; border-radius: 5px; text-align: center; margin-top: 10px; }
-  </style>
+    input[type="password"], input[type="date"], textarea, button {
+      font-size: 1rem;
+      padding: 12px;
+    }
+  }
+</style>
 </head>
 <body>
-  <h2>🔐 Admin Panel</h2>
-  <div class="section" id="adminLoginSection">
-    <input type="email" id="adminEmail" placeholder="Admin Email" />
-    <input type="password" id="adminPassword" placeholder="Password" />
-    <button onclick="loginAdmin()">Login</button>
-    <div id="loginStatus"></div>
+<header>Match Line App - Premium</header>
+<main>
+  <div class="tabs">
+    <div class="tab active" id="tab-admin" onclick="switchTab('admin')">Admin Panel</div>
+    <div class="tab" id="tab-user" onclick="switchTab('user')">User Panel</div>
   </div>
 
-  <div class="section hidden" id="adminPanel">
-    <input type="date" id="adminDate" />
-    <input type="file" id="adminFile" accept=".txt" />
-    <textarea id="adminLines" rows="8" placeholder="Paste lines here..."></textarea>
-    <button onclick="saveLines()">Save Lines</button>
-    <button onclick="deleteLines()">Delete Lines for Date</button>
-    <div id="saveStatus"></div>
-  </div>
+  <!-- Admin Panel -->
+  <section id="admin" class="active" aria-label="Admin Panel">
+    <input type="password" id="adminPass" placeholder="Enter Admin Password" autocomplete="new-password" />
+    <button id="adminLoginBtn" onclick="adminLogin()">Login</button>
+    <div id="adminLoginStatus" class="status"></div>
 
-  <h2>🔎 User Panel</h2>
-  <div class="section">
+    <div id="adminContent" style="display:none;">
+      <input type="date" id="adminDate" />
+      <input type="file" id="adminFile" accept=".txt" />
+      <textarea id="adminLines" placeholder="Paste lines here or import a .txt file"></textarea>
+      <button onclick="adminSaveLines()">Save Lines</button>
+      <button onclick="adminDeleteLines()" style="background:#ef5350;margin-top:5px;">Delete Lines for Date</button>
+      <div id="adminSaveStatus" class="status"></div>
+      <div id="adminLineCount" class="status info"></div>
+    </div>
+  </section>
+
+  <!-- User Panel -->
+  <section id="user" aria-label="User Panel">
     <input type="date" id="userDate" />
     <input type="file" id="userFile" accept=".txt" />
-    <textarea id="userLines" rows="8" placeholder="Paste your lines here..."></textarea>
-    <button onclick="showResults()">Show Results</button>
-    <div id="resultsStatus"></div>
-    <textarea id="matchedResults" rows="8" readonly placeholder="Matched lines will appear here..."></textarea>
-    <button onclick="copyResults()">📋 Copy Matched Lines</button>
-  </div>
+    <textarea id="userLines" placeholder="Paste your lines here or import a .txt file"></textarea>
+    <button onclick="userShowMatches()">Show Matches</button>
+    <div id="userMatchStatus" class="status"></div>
+    <textarea id="userMatchedLines" readonly placeholder="Matched lines appear here"></textarea>
+    <button class="copy-btn" onclick="copyMatchedLines()">📋 Copy Matched Lines</button>
+    <div id="copyStatus" class="status"></div>
+  </section>
+</main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
-    import {
-      getFirestore, doc, getDoc, setDoc, deleteDoc, updateDoc, arrayUnion
-    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
-    import {
-      getAuth, signInWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+<script type="module">
+  // Firebase Config and Initialization
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCasjbGx7JBgbnZbGLkMx0RDb3OFRR4I_o",
-      authDomain: "matchlineapp.firebaseapp.com",
-      projectId: "matchlineapp",
-      storageBucket: "matchlineapp.appspot.com",
-      messagingSenderId: "1053732074460",
-      appId: "1:1053732074460:web:cde960ac63d4bd32151519"
+  const firebaseConfig = {
+    apiKey: "AIzaSyCasjbGx7JBgbnZbGLkMx0RDb3OFRR4I_o",
+    authDomain: "matchlineapp.firebaseapp.com",
+    projectId: "matchlineapp",
+    storageBucket: "matchlineapp.appspot.com",
+    messagingSenderId: "1053732074460",
+    appId: "1:1053732074460:web:cde960ac63d4bd32151519"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Admin Password Hash (SHA-256 of 'vnbuyer123')
+  // For simplicity, using direct string hash comparison here
+  // Hash of "vnbuyer123" is:
+  // 8e7c1eb28eb0f1be02356d59c83d42e204bf57a56f34402b85882da3524d38c6
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function adminLogin() {
+    const pass = document.getElementById("adminPass").value.trim();
+    if (!pass) {
+      setStatus("adminLoginStatus", "Enter password", "error");
+      return;
+    }
+    const hash = await sha256(pass);
+    if (hash === "8e7c1eb28eb0f1be02356d59c83d42e204bf57a56f34402b85882da3524d38c6") {
+      // Success
+      setStatus("adminLoginStatus", "Login successful!", "success");
+      document.getElementById("adminPass").style.display = "none";
+      document.getElementById("adminLoginBtn").style.display = "none";
+      document.getElementById("adminContent").style.display = "block";
+    } else {
+      setStatus("adminLoginStatus", "Incorrect password", "error");
+    }
+  }
+
+  function setStatus(id, msg, type="info") {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = "status " + type;
+  }
+
+  // File import helpers
+  function readFileToTextarea(fileInput, textareaId) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById(textareaId).value = reader.result.trim();
     };
+    reader.readAsText(file);
+  }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+  document.getElementById("adminFile").addEventListener("change", e => {
+    readFileToTextarea(e.target, "adminLines");
+  });
 
-    window.loginAdmin = async function () {
-      const email = document.getElementById('adminEmail').value;
-      const pass = document.getElementById('adminPassword').value;
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        document.getElementById('adminLoginSection').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        document.getElementById('loginStatus').innerHTML = '';
-      } catch {
-        document.getElementById('loginStatus').innerHTML = '❌ Login failed';
-      }
-    };
+  document.getElementById("userFile").addEventListener("change", e => {
+    readFileToTextarea(e.target, "userLines");
+  });
 
-    function readFile(inputEl, targetTextarea) {
-      const file = inputEl.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => targetTextarea.value = reader.result.trim();
-      reader.readAsText(file);
+  // Admin Save Lines
+  async function adminSaveLines() {
+    const date = document.getElementById("adminDate").value;
+    const linesRaw = document.getElementById("adminLines").value.trim();
+    if (!date) {
+      setStatus("adminSaveStatus", "Select a date", "error");
+      return;
+    }
+    if (!linesRaw) {
+      setStatus("adminSaveStatus", "Add or import lines", "error");
+      return;
+    }
+    let newLines = linesRaw.split("\n").map(l => l.trim()).filter(l => l);
+    if (newLines.length === 0) {
+      setStatus("adminSaveStatus", "No valid lines found", "error");
+      return;
     }
 
-    document.getElementById("adminFile").addEventListener("change", function () {
-      readFile(this, document.getElementById("adminLines"));
-    });
+    const docRef = doc(db, "matchlines", date);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      // Append to existing lines
+      const existingLines = docSnap.data().lines || [];
+      const combined = [...existingLines, ...newLines];
+      await setDoc(docRef, { lines: combined });
+      setStatus("adminSaveStatus", `Added ${newLines.length} lines. Total now: ${combined.length}`, "success");
+      updateAdminLineCount(date);
+    } else {
+      // Create new
+      await setDoc(docRef, { lines: newLines });
+      setStatus("adminSaveStatus", `Saved ${newLines.length} lines for ${date}`, "success");
+      updateAdminLineCount(date);
+    }
+  }
 
-    document.getElementById("userFile").addEventListener("change", function () {
-      readFile(this, document.getElementById("userLines"));
-    });
+  // Admin Delete Lines
+  async function adminDeleteLines() {
+    const date = document.getElementById("adminDate").value;
+    if (!date) {
+      setStatus("adminSaveStatus", "Select a date to delete", "error");
+      return;
+    }
+    if (!confirm(`Delete ALL lines for date ${date}? This cannot be undone!`)) return;
+    const docRef = doc(db, "matchlines", date);
+    await deleteDoc(docRef);
+    setStatus("adminSaveStatus", `Deleted all lines for ${date}`, "success");
+    updateAdminLineCount(date);
+  }
 
-    window.saveLines = async function () {
-      const date = document.getElementById("adminDate").value;
-      const lines = document.getElementById("adminLines").value.split("\n").map(l => l.trim()).filter(l => l);
-      if (!date || lines.length === 0) {
-        document.getElementById("saveStatus").innerHTML = "❗ Select date and enter lines";
-        return;
-      }
-      const ref = doc(db, "matchlines", date);
-      const docSnap = await getDoc(ref);
-      if (docSnap.exists()) {
-        await updateDoc(ref, { lines: arrayUnion(...lines) });
-      } else {
-        await setDoc(ref, { lines });
-      }
-      document.getElementById("saveStatus").innerHTML = `✅ Saved ${lines.length} lines`;
-    };
+  // Update admin line count display
+  async function updateAdminLineCount(date) {
+    if (!date) {
+      setStatus("adminLineCount", "");
+      return;
+    }
+    const docRef = doc(db, "matchlines", date);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const count = docSnap.data().lines?.length || 0;
+      setStatus("adminLineCount", `Total lines saved for ${date}: ${count}`, "info");
+    } else {
+      setStatus("adminLineCount", `No lines saved for ${date}`, "info");
+    }
+  }
 
-    window.deleteLines = async function () {
-      const date = document.getElementById("adminDate").value;
-      if (!date) return;
-      await deleteDoc(doc(db, "matchlines", date));
-      document.getElementById("saveStatus").innerHTML = "🗑️ Deleted lines for selected date";
-    };
+  document.getElementById("adminDate").addEventListener("change", e => {
+    updateAdminLineCount(e.target.value);
+  });
 
-    window.showResults = async function () {
-      const date = document.getElementById("userDate").value;
-      const inputLines = document.getElementById("userLines").value.split("\n").map(l => l.trim()).filter(l => l);
-      if (!date || inputLines.length === 0) {
-        document.getElementById("resultsStatus").innerHTML = "❗ Select date and enter lines";
-        return;
-      }
-      const ref = doc(db, "matchlines", date);
-      const docSnap = await getDoc(ref);
-      if (!docSnap.exists()) {
-        document.getElementById("matchedResults").value = "";
-        document.getElementById("resultsStatus").innerHTML = "❌ No data found for this date";
-        return;
-      }
-      const storedLines = docSnap.data().lines;
-      const matched = inputLines.filter(line => storedLines.includes(line));
-      document.getElementById("matchedResults").value = matched.join("\n");
-      document.getElementById("resultsStatus").innerHTML = `✅ ${matched.length} lines matched`;
-    };
+  // User Show Matches
+  async function userShowMatches() {
+    const date = document.getElementById("userDate").value;
+    const linesRaw = document.getElementById("userLines").value.trim();
+    if (!date) {
+      setStatus("userMatchStatus", "Select a date", "error");
+      return;
+    }
+    if (!linesRaw) {
+      setStatus("userMatchStatus", "Add or import your lines", "error");
+      return;
+    }
 
-    window.copyResults = async function () {
-      try {
-        await navigator.clipboard.writeText(document.getElementById("matchedResults").value);
-        alert("Copied!");
-      } catch {
-        alert("Copy failed");
-      }
-    };
-  </script>
+    const userLines = linesRaw.split("\n").map(l => l.trim()).filter(l => l);
+    if (userLines.length === 0) {
+      setStatus("userMatchStatus", "No valid lines found", "error");
+      return;
+    }
+
+    const docRef = doc(db, "matchlines", date);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+      setStatus("userMatchStatus", "No data found for this date", "error");
+      document.getElementById("userMatchedLines").value = "";
+      return;
+    }
+    const adminLines = docSnap.data().lines || [];
+
+    // Find matches ignoring case
+    const matches = userLines.filter(uLine =>
+      adminLines.some(aLine => aLine.toLowerCase() === uLine.toLowerCase())
+    );
+
+    if (matches.length === 0) {
+      setStatus("userMatchStatus", "No matching lines found", "info");
+      document.getElementById("userMatchedLines").value = "";
+      return;
+    }
+
+    setStatus("userMatchStatus", `Found ${matches.length} matching line${matches.length > 1 ? 's' : ''}`, "success");
+    document.getElementById("userMatchedLines").value = matches.join("\n");
+  }
+
+  // Copy matched lines to clipboard with animation
+  async function copyMatchedLines() {
+    const text = document.getElementById("userMatchedLines").value;
+    if (!text) {
+      setStatus("copyStatus", "No lines to copy", "error");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus("copyStatus", "Copied to clipboard!", "success");
+      setTimeout(() => setStatus("copyStatus", ""), 2500);
+    } catch {
+      setStatus("copyStatus", "Copy failed", "error");
+    }
+  }
+
+  // Tab switching
+  function switchTab(tab) {
+    const adminTab = document.getElementById("tab-admin");
+    const userTab = document.getElementById("tab-user");
+    const adminPanel = document.getElementById("admin");
+    const userPanel = document.getElementById("user");
+
+    if (tab === "admin") {
+      adminTab.classList.add("active");
+      userTab.classList.remove("active");
+      adminPanel.classList.add("active");
+      userPanel.classList.remove("active");
+    } else {
+      adminTab.classList.remove("active");
+      userTab.classList.add("active");
+      adminPanel.classList.remove("active");
+      userPanel.classList.add("active");
+    }
+  }
+</script>
 </body>
 </html>
