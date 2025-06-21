@@ -14,8 +14,6 @@
     max-width: 600px; width: 100%;
     background: #1a1a1a; border-radius: 12px;
     padding: 20px 25px; box-shadow: 0 0 30px #00ffccaa;
-    display: flex;
-    flex-direction: column;
   }
   h2 {
     text-align: center; color: #00ffcc; margin-bottom: 25px;
@@ -24,23 +22,13 @@
     width: 100%; margin-bottom: 15px; border-radius: 8px;
     border: none; padding: 10px 12px; font-size: 16px;
     box-sizing: border-box;
-    background: #222; color: #eee;
-    transition: background 0.3s ease;
-  }
-  input:focus, textarea:focus, select:focus {
-    outline: none;
-    background: #333;
   }
   button {
     background: #00ffcc; color: #000; font-weight: 700;
     cursor: pointer; transition: background 0.3s ease;
   }
-  button:hover:not(:disabled) {
+  button:hover {
     background: #00ccaaff;
-  }
-  button:disabled {
-    background: #004d4d;
-    cursor: not-allowed;
   }
   .tabs {
     display: flex; margin-bottom: 30px;
@@ -58,34 +46,35 @@
   .hidden {
     display: none !important;
   }
-  #saveProgress {
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: #0ff;
-    min-height: 22px;
+  #result {
+    margin-top: 20px;
   }
-  #linesCount {
-    color: #0ff; font-weight: 600; margin-bottom: 10px;
+  .match-line {
+    background: #222; border-radius: 8px; padding: 10px 15px;
+    margin-bottom: 8px; display: flex; justify-content: space-between;
+    align-items: center; cursor: pointer;
+    transition: background 0.3s ease;
   }
-  #resultPre {
-    background:#222; border-radius:8px; padding:15px; height: 200px; overflow-y:auto; white-space: pre-wrap; margin-top:15px;
+  .match-line:hover {
+    background: #00ffcc22;
   }
   .copy-btn {
-    background: #00cc99; border: none; color: #000; padding: 8px 16px;
+    background: #00cc99; border: none; color: #000; padding: 4px 10px;
     border-radius: 5px; cursor: pointer; font-weight: 600;
-    font-size: 16px;
+    font-size: 14px;
     user-select: none;
+  }
+  #adminInfo {
+    color: #0f0; font-weight: 600; margin-bottom: 15px;
+  }
+  #loginStatus {
+    color: #f44; font-weight: 600; margin-bottom: 15px;
+  }
+  #logoutBtn {
+    background: #f44 !important;
     margin-bottom: 15px;
   }
-  #adminButtonsRow {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-  #adminButtonsRow button {
-    flex: 1;
-  }
-  label.file-label {
+  #fileInputLabel, #userFileInputLabel {
     display: block;
     background: #008080aa;
     color: white;
@@ -96,19 +85,27 @@
     cursor: pointer;
     margin-bottom: 15px;
   }
-  input[type="file"] {
+  #fileInput, #userFileInput {
     display: none;
   }
-  #loginStatus {
-    color: #f44; font-weight: 600; margin-bottom: 15px;
-    min-height: 22px;
-  }
-  #adminInfo {
-    color: #0f0; font-weight: 600; margin-bottom: 15px;
-  }
-  #logoutBtn {
-    background: #f44 !important;
+  #saveProgress {
+    font-weight: 600;
     margin-bottom: 15px;
+    color: #0ff;
+  }
+  #linesCount {
+    color: #0ff; font-weight: 600; margin-bottom: 10px;
+  }
+  #allMatchesText {
+    resize: none;
+  }
+  #adminButtonsRow {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  #adminButtonsRow button {
+    flex: 1;
   }
 </style>
 </head>
@@ -145,7 +142,7 @@
 
       <textarea id="adminLines" rows="8" placeholder="Paste new lines here to append (one per line)"></textarea>
 
-      <label for="fileInput" class="file-label">📂 Import lines from file (.txt)</label>
+      <label id="fileInputLabel" for="fileInput">📂 Import lines from file (.txt)</label>
       <input type="file" id="fileInput" accept=".txt" />
 
       <p id="saveProgress"></p>
@@ -156,17 +153,16 @@
   <div id="userPanel">
     <input type="date" id="userDate" />
 
-    <label for="userFileInput" class="file-label">📂 Import lines from file (.txt)</label>
+    <label id="userFileInputLabel" for="userFileInput">📂 Import lines from file (.txt)</label>
     <input type="file" id="userFileInput" accept=".txt" />
 
     <textarea id="userLines" rows="6" placeholder="Enter your lines (one per line)"></textarea>
     <button id="userMatchBtn">Show Results</button>
 
-    <pre id="resultPre"></pre>
+    <button id="exportBtn" class="hidden" style="margin-top:15px;">Export Matched to Excel</button>
+    <button id="printBtn" class="hidden" style="margin-top:10px;">Print Matched Results</button>
 
-    <button id="copyAllBtn" class="copy-btn hidden">Copy All Matched Lines</button>
-    <button id="exportBtn" class="copy-btn hidden">Export Matched to Excel</button>
-    <button id="printBtn" class="copy-btn hidden">Print Matched Results</button>
+    <div id="result"></div>
   </div>
 </div>
 
@@ -219,15 +215,14 @@
   const userDateInput = document.getElementById('userDate');
   const userLinesTextarea = document.getElementById('userLines');
   const userMatchBtn = document.getElementById('userMatchBtn');
-  const resultPre = document.getElementById('resultPre');
+  const resultDiv = document.getElementById('result');
 
-  const copyAllBtn = document.getElementById('copyAllBtn');
   const exportBtn = document.getElementById('exportBtn');
   const printBtn = document.getElementById('printBtn');
 
   const userFileInput = document.getElementById('userFileInput');
 
-  // Tabs switch
+  // Tabs switch with forced logout when leaving admin panel
   function showAdmin(show) {
     if (show) {
       adminPanel.classList.remove('hidden');
@@ -239,6 +234,8 @@
       userPanel.classList.remove('hidden');
       tabAdmin.classList.remove('active');
       tabUser.classList.add('active');
+      // Force logout admin when switching to user tab
+      auth.signOut();
     }
   }
 
@@ -353,139 +350,131 @@
     }
     const lines = linesRaw.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) {
-      saveProgress.textContent = 'Add valid lines.';
+      saveProgress.textContent = 'Add at least one valid line.';
       return;
     }
 
-    saveProgress.textContent = 'Saving...';
+    saveProgress.textContent = 'Saving... 10';
+    let countdown = 10;
+    let saveFinished = false;
+
+    const countdownInterval = setInterval(() => {
+      countdown--;
+      if (countdown <= 0 || saveFinished) {
+        clearInterval(countdownInterval);
+        if (!saveFinished) {
+          saveProgress.textContent = 'Saving...';
+        }
+      } else {
+        saveProgress.textContent = `Saving... ${countdown}`;
+      }
+    }, 1000);
 
     try {
-      // Delete old chunks for this date first to replace all lines (append meaning whole new content)
-      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      // Delete all old chunks before saving updated lines (overwrite)
+      const oldChunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       const batchDelete = db.batch();
-      chunksSnapshot.forEach(doc => {
-        batchDelete.delete(doc.ref);
-      });
+      oldChunksSnapshot.forEach(doc => batchDelete.delete(doc.ref));
       await batchDelete.commit();
 
-      // Now split new lines into chunks of 500
-      const chunkSize = 500;
+      // Save new lines in chunks
+      const chunkSize = 1000;
       const chunks = [];
       for (let i = 0; i < lines.length; i += chunkSize) {
         chunks.push(lines.slice(i, i + chunkSize));
       }
 
-      // Save each chunk as a document
-      const batch = db.batch();
+      const batchSave = db.batch();
       chunks.forEach((chunkLines, idx) => {
-        const docRef = db.collection('lines').doc(date).collection('chunks').doc('chunk' + idx);
-        batch.set(docRef, { lines: chunkLines });
+        const chunkDoc = db.collection('lines').doc(date).collection('chunks').doc(`chunk_${idx + 1}`);
+        batchSave.set(chunkDoc, { lines: chunkLines });
       });
-      await batch.commit();
+      await batchSave.commit();
 
-      saveProgress.textContent = `Saved ${lines.length} lines in ${chunks.length} chunks for date ${date}.`;
+      saveFinished = true; // stop countdown early
+      clearInterval(countdownInterval);
+      saveProgress.textContent = '';
       linesCount.textContent = `Lines saved: ${lines.length}`;
 
+      alert(`✅ Saved ${lines.length} lines for date ${date}!`);
+
+      fileInput.value = '';
+
     } catch (e) {
-      saveProgress.textContent = 'Error saving data.';
+      clearInterval(countdownInterval);
+      saveProgress.textContent = '❌ Error saving. Try again.';
       console.error(e);
     }
   });
 
-  // Delete all data for selected date
+  // Delete all chunks under a date
   adminDeleteBtn.addEventListener('click', async () => {
     const date = adminDateInput.value;
     if (!date) {
-      alert('Select a date first.');
+      alert('Select a date to delete.');
       return;
     }
-    if (!confirm(`Delete all data for date ${date}? This cannot be undone.`)) {
-      return;
-    }
+    if (!confirm(`Are you sure you want to DELETE all data for date ${date}? This action cannot be undone.`)) return;
+
     try {
+      // Get all chunk docs
       const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       if (chunksSnapshot.empty) {
-        alert('No data to delete for this date.');
+        alert('No data found for this date to delete.');
         return;
       }
+
+      // Batch delete all chunks
       const batch = db.batch();
       chunksSnapshot.forEach(doc => {
         batch.delete(doc.ref);
       });
+
       await batch.commit();
 
+      alert(`✅ All data for date ${date} deleted successfully!`);
+
+      saveProgress.textContent = `Deleted all data for ${date}. You can now import new files for this date.`;
       adminLinesTextarea.value = '';
       linesCount.textContent = 'Lines saved: 0';
-      saveProgress.textContent = 'Deleted all data for ' + date;
+      fileInput.value = '';
+
     } catch (e) {
-      alert('Error deleting data.');
+      alert('❌ Error deleting data.');
       console.error(e);
     }
   });
 
-  // USER PANEL
-
-  // Import user lines from file into textarea
-  userFileInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.txt')) {
-      alert('Please select a .txt file');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const importedText = reader.result.replace(/\r\n/g, '\n');
-      if(userLinesTextarea.value.trim()) {
-        userLinesTextarea.value += '\n' + importedText;
-      } else {
-        userLinesTextarea.value = importedText;
-      }
-    };
-    reader.readAsText(file);
-  });
-
-  // Show / hide copy/export/print buttons
-  function toggleResultButtons(show) {
-    if (show) {
-      copyAllBtn.classList.remove('hidden');
-      exportBtn.classList.remove('hidden');
-      printBtn.classList.remove('hidden');
-    } else {
-      copyAllBtn.classList.add('hidden');
-      exportBtn.classList.add('hidden');
-      printBtn.classList.add('hidden');
-    }
-  }
-
-  // User match button
+  // User show matches, reading all chunks
   userMatchBtn.addEventListener('click', async () => {
     const date = userDateInput.value;
     const linesRaw = userLinesTextarea.value.trim();
-
-    resultPre.textContent = '';
-    toggleResultButtons(false);
-
     if (!date) {
-      resultPre.textContent = '⚠️ Select a date.';
+      resultDiv.innerHTML = '<p>Select a date.</p>';
+      exportBtn.classList.add('hidden');
+      printBtn.classList.add('hidden');
       return;
     }
     if (!linesRaw) {
-      resultPre.textContent = '⚠️ Enter your lines.';
+      resultDiv.innerHTML = '<p>Enter your lines.</p>';
+      exportBtn.classList.add('hidden');
+      printBtn.classList.add('hidden');
       return;
     }
-
     const userLines = linesRaw.split('\n').map(l => l.trim()).filter(l => l);
     if (userLines.length === 0) {
-      resultPre.textContent = '⚠️ Enter at least one valid line.';
+      resultDiv.innerHTML = '<p>Enter at least one valid line.</p>';
+      exportBtn.classList.add('hidden');
+      printBtn.classList.add('hidden');
       return;
     }
-
-    resultPre.textContent = '⏳ Loading data... Please wait.';
+    resultDiv.innerHTML = 'Loading...';
     try {
       const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       if (chunksSnapshot.empty) {
-        resultPre.textContent = '❌ No data found for that date.';
+        resultDiv.innerHTML = '<p>No data for that date.</p>';
+        exportBtn.classList.add('hidden');
+        printBtn.classList.add('hidden');
         return;
       }
 
@@ -497,63 +486,103 @@
         }
       });
 
-      const adminLinesSet = new Set(allAdminLines);
-      const matched = userLines.filter(line => adminLinesSet.has(line));
+      // Find matched lines
+      const matched = userLines.filter(line => allAdminLines.includes(line));
 
       if (matched.length === 0) {
-        resultPre.textContent = 'ℹ️ No matched lines found.';
+        resultDiv.innerHTML = '<p>No matched lines found.</p>';
+        exportBtn.classList.add('hidden');
+        printBtn.classList.add('hidden');
         return;
       }
 
-      resultPre.textContent = matched.join('\n');
-      toggleResultButtons(true);
+      // Show matched lines count + copy all button + list lines
+      const matchCount = matched.length;
+      let html = `<p>Matched lines: <strong>${matchCount}</strong></p>`;
+      html += `<button id="copyAllBtn" class="copy-btn" style="margin-bottom:10px;">Copy All Matched Lines</button>`;
+      html += `<div>`;
+      matched.forEach(line => {
+        html += `<div class="match-line">${line}</div>`;
+      });
+      html += `</div>`;
+
+      resultDiv.innerHTML = html;
+      exportBtn.classList.remove('hidden');
+      printBtn.classList.remove('hidden');
+
+      // Attach copy all click event
+      document.getElementById('copyAllBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(matched.join('\n')).then(() => {
+          alert('All matched lines copied to clipboard!');
+        }).catch(() => {
+          alert('Copy failed. Try manually.');
+        });
+      });
+
     } catch (e) {
+      resultDiv.innerHTML = '<p>Error loading data.</p>';
+      exportBtn.classList.add('hidden');
+      printBtn.classList.add('hidden');
       console.error(e);
-      resultPre.textContent = '❌ Error loading data.';
     }
   });
 
-  // Copy all matched lines
-  copyAllBtn.addEventListener('click', () => {
-    const text = resultPre.textContent.trim();
-    if (!text) {
-      alert('No matched lines to copy.');
+  // User file import (append)
+  userFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      alert('Please select a .txt file');
       return;
     }
-    navigator.clipboard.writeText(text).then(() => {
-      alert('✅ All matched lines copied to clipboard!');
-    }).catch(() => {
-      alert('❌ Copy failed. Try manually.');
-    });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const importedText = reader.result.replace(/\r\n/g, '\n'); // normalize new lines
+      if(userLinesTextarea.value.trim()) {
+        userLinesTextarea.value += '\n' + importedText;
+      } else {
+        userLinesTextarea.value = importedText;
+      }
+    };
+    reader.readAsText(file);
   });
 
-  // Export matched lines to Excel
+  // Export matched results to Excel
   exportBtn.addEventListener('click', () => {
-    const text = resultPre.textContent.trim();
-    if (!text) {
-      alert('No matched lines to export.');
+    const matchedLines = [];
+    const matchDivs = document.querySelectorAll('#result .match-line');
+    matchDivs.forEach(div => {
+      matchedLines.push(div.textContent);
+    });
+    if (matchedLines.length === 0) {
+      alert('No matches to export.');
       return;
     }
-    const lines = text.split('\n').map(l => [l]); // array of arrays for XLSX
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(lines);
-    XLSX.utils.book_append_sheet(wb, ws, 'MatchedLines');
-    XLSX.writeFile(wb, 'matched_lines.xlsx');
+    const worksheet = XLSX.utils.aoa_to_sheet([['Matched Lines'], ...matchedLines.map(m => [m])]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Matches");
+    XLSX.writeFile(workbook, "matched_lines.xlsx");
   });
 
-  // Print matched lines
+  // Print matched results
   printBtn.addEventListener('click', () => {
-    const text = resultPre.textContent.trim();
-    if (!text) {
-      alert('No matched lines to print.');
+    const matchDivs = document.querySelectorAll('#result .match-line');
+    if (matchDivs.length === 0) {
+      alert('No matches to print.');
       return;
     }
-    const newWin = window.open('', '_blank');
-    newWin.document.write('<pre style="font-size:16px; padding:15px;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>');
-    newWin.document.close();
-    newWin.focus();
-    newWin.print();
+    let printContent = '';
+    matchDivs.forEach(div => {
+      printContent += div.textContent + '\n';
+    });
+    const printWindow = window.open('', '', 'height=600,width=400');
+    printWindow.document.write('<html><head><title>Print Matches</title>');
+    printWindow.document.write('<style>body{font-family:sans-serif; padding:10px;} pre {font-family: monospace; white-space: pre-wrap;}</style>');
+    printWindow.document.write('</head><body><pre>' + printContent + '</pre></body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   });
 </script>
 
