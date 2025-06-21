@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Match Line App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: sans-serif; background: #0f0f0f; color: white; padding: 20px; }
+    h2 { color: #00e676; }
+    textarea, input, select, button {
+      width: 100%; margin: 5px 0; padding: 10px;
+      border-radius: 8px; border: none;
+    }
+    .section { background: #1e1e1e; padding: 15px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 0 10px #00e67655; }
+    .hidden { display: none; }
+    .success { background: #2e7d32; color: white; padding: 10px; border-radius: 5px; text-align: center; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>🔐 Admin Panel</h2>
+  <div class="section" id="adminLoginSection">
+    <input type="email" id="adminEmail" placeholder="Admin Email" />
+    <input type="password" id="adminPassword" placeholder="Password" />
+    <button onclick="loginAdmin()">Login</button>
+    <div id="loginStatus"></div>
+  </div>
+
+  <div class="section hidden" id="adminPanel">
+    <input type="date" id="adminDate" />
+    <input type="file" id="adminFile" accept=".txt" />
+    <textarea id="adminLines" rows="8" placeholder="Paste lines here..."></textarea>
+    <button onclick="saveLines()">Save Lines</button>
+    <button onclick="deleteLines()">Delete Lines for Date</button>
+    <div id="saveStatus"></div>
+  </div>
+
+  <h2>🔎 User Panel</h2>
+  <div class="section">
+    <input type="date" id="userDate" />
+    <input type="file" id="userFile" accept=".txt" />
+    <textarea id="userLines" rows="8" placeholder="Paste your lines here..."></textarea>
+    <button onclick="showResults()">Show Results</button>
+    <div id="resultsStatus"></div>
+    <textarea id="matchedResults" rows="8" readonly placeholder="Matched lines will appear here..."></textarea>
+    <button onclick="copyResults()">📋 Copy Matched Lines</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, deleteDoc, updateDoc, arrayUnion
+    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+    import {
+      getAuth, signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCasjbGx7JBgbnZbGLkMx0RDb3OFRR4I_o",
+      authDomain: "matchlineapp.firebaseapp.com",
+      projectId: "matchlineapp",
+      storageBucket: "matchlineapp.appspot.com",
+      messagingSenderId: "1053732074460",
+      appId: "1:1053732074460:web:cde960ac63d4bd32151519"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    window.loginAdmin = async function () {
+      const email = document.getElementById('adminEmail').value;
+      const pass = document.getElementById('adminPassword').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        document.getElementById('adminLoginSection').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('loginStatus').innerHTML = '';
+      } catch {
+        document.getElementById('loginStatus').innerHTML = '❌ Login failed';
+      }
+    };
+
+    function readFile(inputEl, targetTextarea) {
+      const file = inputEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => targetTextarea.value = reader.result.trim();
+      reader.readAsText(file);
+    }
+
+    document.getElementById("adminFile").addEventListener("change", function () {
+      readFile(this, document.getElementById("adminLines"));
+    });
+
+    document.getElementById("userFile").addEventListener("change", function () {
+      readFile(this, document.getElementById("userLines"));
+    });
+
+    window.saveLines = async function () {
+      const date = document.getElementById("adminDate").value;
+      const lines = document.getElementById("adminLines").value.split("\n").map(l => l.trim()).filter(l => l);
+      if (!date || lines.length === 0) {
+        document.getElementById("saveStatus").innerHTML = "❗ Select date and enter lines";
+        return;
+      }
+      const ref = doc(db, "matchlines", date);
+      const docSnap = await getDoc(ref);
+      if (docSnap.exists()) {
+        await updateDoc(ref, { lines: arrayUnion(...lines) });
+      } else {
+        await setDoc(ref, { lines });
+      }
+      document.getElementById("saveStatus").innerHTML = `✅ Saved ${lines.length} lines`;
+    };
+
+    window.deleteLines = async function () {
+      const date = document.getElementById("adminDate").value;
+      if (!date) return;
+      await deleteDoc(doc(db, "matchlines", date));
+      document.getElementById("saveStatus").innerHTML = "🗑️ Deleted lines for selected date";
+    };
+
+    window.showResults = async function () {
+      const date = document.getElementById("userDate").value;
+      const inputLines = document.getElementById("userLines").value.split("\n").map(l => l.trim()).filter(l => l);
+      if (!date || inputLines.length === 0) {
+        document.getElementById("resultsStatus").innerHTML = "❗ Select date and enter lines";
+        return;
+      }
+      const ref = doc(db, "matchlines", date);
+      const docSnap = await getDoc(ref);
+      if (!docSnap.exists()) {
+        document.getElementById("matchedResults").value = "";
+        document.getElementById("resultsStatus").innerHTML = "❌ No data found for this date";
+        return;
+      }
+      const storedLines = docSnap.data().lines;
+      const matched = inputLines.filter(line => storedLines.includes(line));
+      document.getElementById("matchedResults").value = matched.join("\n");
+      document.getElementById("resultsStatus").innerHTML = `✅ ${matched.length} lines matched`;
+    };
+
+    window.copyResults = async function () {
+      try {
+        await navigator.clipboard.writeText(document.getElementById("matchedResults").value);
+        alert("Copied!");
+      } catch {
+        alert("Copy failed");
+      }
+    };
+  </script>
+</body>
+</html>
