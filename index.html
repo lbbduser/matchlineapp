@@ -3,437 +3,559 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Match Line App - Premium UI</title>
+<title>Match Line System with Append & Count</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
-  * {
-    box-sizing: border-box;
-  }
   body {
-    margin: 0; padding: 0;
-    font-family: 'Poppins', sans-serif;
-    background: #121212;
-    color: #e0e0e0;
-    min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center;
+    margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #111; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 15px;
   }
-  header {
-    width: 100%; max-width: 480px;
-    background: linear-gradient(90deg, #0ff, #08f);
-    padding: 15px 20px;
-    font-weight: 600;
-    font-size: 1.4rem;
-    color: #000;
-    text-align: center;
-    user-select: none;
-    letter-spacing: 1.2px;
-    box-shadow: 0 2px 12px #0ff9;
-  }
-  main {
-    flex: 1;
-    width: 100%; max-width: 480px;
-    background: #1e1e1e;
-    margin: 20px 0 30px;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 0 18px #00e6ff44;
-    position: relative;
-  }
-  .tabs {
+  .container {
+    max-width: 600px; width: 100%;
+    background: #1a1a1a; border-radius: 12px;
+    padding: 20px 25px; box-shadow: 0 0 30px #00ffccaa;
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    user-select: none;
+    flex-direction: column;
   }
-  .tab {
-    flex: 1;
-    padding: 12px 0;
-    text-align: center;
-    background: #222;
-    color: #bbb;
-    font-weight: 600;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
+  h2 {
+    text-align: center; color: #00ffcc; margin-bottom: 25px;
   }
-  .tab.active {
-    background: #0ff;
-    color: #000;
-    box-shadow: 0 0 10px #0ff;
+  input, textarea, button, select {
+    width: 100%; margin-bottom: 15px; border-radius: 8px;
+    border: none; padding: 10px 12px; font-size: 16px;
+    box-sizing: border-box;
+    background: #222; color: #eee;
+    transition: background 0.3s ease;
   }
-  section {
-    display: none;
-    animation: fadeIn 0.5s ease forwards;
-  }
-  section.active {
-    display: block;
-  }
-
-  /* Form Elements */
-  input[type="password"],
-  input[type="date"],
-  input[type="file"],
-  textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: none;
+  input:focus, textarea:focus, select:focus {
     outline: none;
-    resize: vertical;
-    font-size: 1rem;
-    background: #222;
-    color: #eee;
-    box-shadow: inset 0 0 6px #0ff4;
-    margin-bottom: 15px;
-    transition: box-shadow 0.3s;
-  }
-  input[type="password"]:focus,
-  input[type="date"]:focus,
-  input[type="file"]:focus,
-  textarea:focus {
-    box-shadow: inset 0 0 10px #0ff;
+    background: #333;
   }
   button {
-    width: 100%;
-    padding: 14px;
-    background: #0ff;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    color: #000;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background-color 0.3s, box-shadow 0.3s;
-    user-select: none;
-    box-shadow: 0 0 8px #0ff;
+    background: #00ffcc; color: #000; font-weight: 700;
+    cursor: pointer; transition: background 0.3s ease;
   }
-  button:hover {
-    background: #08c;
-    color: #0ff;
-    box-shadow: 0 0 18px #0ff;
+  button:hover:not(:disabled) {
+    background: #00ccaaff;
   }
-  button:active {
-    background: #05a;
-    box-shadow: 0 0 25px #0ff;
+  button:disabled {
+    background: #004d4d;
+    cursor: not-allowed;
   }
-
-  /* Status messages */
-  .status {
-    margin-top: 8px;
+  .tabs {
+    display: flex; margin-bottom: 30px;
+  }
+  .tabs button {
+    flex: 1; padding: 12px 0; background: #222;
+    color: #eee; font-weight: 600; border-radius: 0;
+    border-bottom: 3px solid transparent; cursor: pointer;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .tabs button.active {
+    background: #000;
+    border-color: #00ffcc;
+  }
+  .hidden {
+    display: none !important;
+  }
+  #saveProgress {
     font-weight: 600;
-    text-align: center;
-    min-height: 1.3rem;
-    user-select: none;
+    margin-bottom: 15px;
+    color: #0ff;
+    min-height: 22px;
   }
-  .status.success {
-    color: #4caf50;
+  #linesCount {
+    color: #0ff; font-weight: 600; margin-bottom: 10px;
   }
-  .status.error {
-    color: #ef5350;
+  #resultPre {
+    background:#222; border-radius:8px; padding:15px; height: 200px; overflow-y:auto; white-space: pre-wrap; margin-top:15px;
   }
-  .status.info {
-    color: #00bcd4;
-  }
-
-  /* Hide file input */
-  input[type="file"] {
-    padding: 6px 14px;
-    cursor: pointer;
-  }
-
-  /* Animations */
-  @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
-  }
-
-  /* Textarea monospace for lines */
-  textarea {
-    font-family: 'Courier New', Courier, monospace;
-    line-height: 1.3;
-    min-height: 140px;
-  }
-
-  /* Copy button */
   .copy-btn {
-    margin-top: 10px;
+    background: #00cc99; border: none; color: #000; padding: 8px 16px;
+    border-radius: 5px; cursor: pointer; font-weight: 600;
+    font-size: 16px;
+    user-select: none;
+    margin-bottom: 15px;
   }
-
-  /* Scroll inside textarea */
-  textarea {
-    overflow-y: auto;
+  #adminButtonsRow {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
   }
-
-  /* Mobile-friendly tweaks */
-  @media (max-width: 480px) {
-    main {
-      margin: 15px 10px 25px;
-      padding: 15px;
-    }
-    input[type="password"], input[type="date"], textarea, button {
-      font-size: 1rem;
-      padding: 12px;
-    }
+  #adminButtonsRow button {
+    flex: 1;
+  }
+  label.file-label {
+    display: block;
+    background: #008080aa;
+    color: white;
+    font-weight: 700;
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 15px;
+  }
+  input[type="file"] {
+    display: none;
+  }
+  #loginStatus {
+    color: #f44; font-weight: 600; margin-bottom: 15px;
+    min-height: 22px;
+  }
+  #adminInfo {
+    color: #0f0; font-weight: 600; margin-bottom: 15px;
+  }
+  #logoutBtn {
+    background: #f44 !important;
+    margin-bottom: 15px;
   }
 </style>
 </head>
 <body>
-<header>Match Line App - Premium</header>
-<main>
+
+<div class="container">
+  <h2>🔐 Match Line System with Append & Count</h2>
+
   <div class="tabs">
-    <div class="tab active" id="tab-admin" onclick="switchTab('admin')">Admin Panel</div>
-    <div class="tab" id="tab-user" onclick="switchTab('user')">User Panel</div>
+    <button id="tabAdmin">Admin</button>
+    <button id="tabUser" class="active">User</button>
   </div>
 
   <!-- Admin Panel -->
-  <section id="admin" class="active" aria-label="Admin Panel">
-    <input type="password" id="adminPass" placeholder="Enter Admin Password" autocomplete="new-password" />
-    <button id="adminLoginBtn" onclick="adminLogin()">Login</button>
-    <div id="adminLoginStatus" class="status"></div>
-
-    <div id="adminContent" style="display:none;">
-      <input type="date" id="adminDate" />
-      <input type="file" id="adminFile" accept=".txt" />
-      <textarea id="adminLines" placeholder="Paste lines here or import a .txt file"></textarea>
-      <button onclick="adminSaveLines()">Save Lines</button>
-      <button onclick="adminDeleteLines()" style="background:#ef5350;margin-top:5px;">Delete Lines for Date</button>
-      <div id="adminSaveStatus" class="status"></div>
-      <div id="adminLineCount" class="status info"></div>
+  <div id="adminPanel" class="hidden">
+    <div id="loginSection">
+      <input type="email" id="adminEmail" placeholder="Admin Email" autocomplete="off" />
+      <input type="password" id="adminPassword" placeholder="Password" autocomplete="off" />
+      <button id="loginBtn">Login</button>
+      <p id="loginStatus"></p>
     </div>
-  </section>
+
+    <div id="adminControls" class="hidden">
+      <p id="adminInfo">Logged in as Admin</p>
+      <button id="logoutBtn">Logout</button>
+
+      <input type="date" id="adminDate" />
+      <p id="linesCount">Lines saved: 0</p>
+
+      <div id="adminButtonsRow">
+        <button id="adminSaveBtn">Save Lines (Append)</button>
+        <button id="adminDeleteBtn" style="background:#f44; color:#fff;">Delete Date Data</button>
+      </div>
+
+      <textarea id="adminLines" rows="8" placeholder="Paste new lines here to append (one per line)"></textarea>
+
+      <label for="fileInput" class="file-label">📂 Import lines from file (.txt)</label>
+      <input type="file" id="fileInput" accept=".txt" />
+
+      <p id="saveProgress"></p>
+    </div>
+  </div>
 
   <!-- User Panel -->
-  <section id="user" aria-label="User Panel">
+  <div id="userPanel">
     <input type="date" id="userDate" />
-    <input type="file" id="userFile" accept=".txt" />
-    <textarea id="userLines" placeholder="Paste your lines here or import a .txt file"></textarea>
-    <button onclick="userShowMatches()">Show Matches</button>
-    <div id="userMatchStatus" class="status"></div>
-    <textarea id="userMatchedLines" readonly placeholder="Matched lines appear here"></textarea>
-    <button class="copy-btn" onclick="copyMatchedLines()">📋 Copy Matched Lines</button>
-    <div id="copyStatus" class="status"></div>
-  </section>
-</main>
 
-<script type="module">
-  // Firebase Config and Initialization
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
-  import {
-    getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, deleteDoc
-  } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+    <label for="userFileInput" class="file-label">📂 Import lines from file (.txt)</label>
+    <input type="file" id="userFileInput" accept=".txt" />
 
+    <textarea id="userLines" rows="6" placeholder="Enter your lines (one per line)"></textarea>
+    <button id="userMatchBtn">Show Results</button>
+
+    <pre id="resultPre"></pre>
+
+    <button id="copyAllBtn" class="copy-btn hidden">Copy All Matched Lines</button>
+    <button id="exportBtn" class="copy-btn hidden">Export Matched to Excel</button>
+    <button id="printBtn" class="copy-btn hidden">Print Matched Results</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- SheetJS for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCasjbGx7JBgbnZbGLkMx0RDb3OFRR4I_o",
     authDomain: "matchlineapp.firebaseapp.com",
     projectId: "matchlineapp",
-    storageBucket: "matchlineapp.appspot.com",
+    storageBucket: "matchlineapp.firebasestorage.app",
     messagingSenderId: "1053732074460",
     appId: "1:1053732074460:web:cde960ac63d4bd32151519"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  // Admin Password Hash (SHA-256 of 'vnbuyer123')
-  // For simplicity, using direct string hash comparison here
-  // Hash of "vnbuyer123" is:
-  // 8e7c1eb28eb0f1be02356d59c83d42e204bf57a56f34402b85882da3524d38c6
+  // UI Elements
+  const tabAdmin = document.getElementById('tabAdmin');
+  const tabUser = document.getElementById('tabUser');
+  const adminPanel = document.getElementById('adminPanel');
+  const userPanel = document.getElementById('userPanel');
 
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const loginSection = document.getElementById('loginSection');
+  const adminControls = document.getElementById('adminControls');
+  const adminEmailInput = document.getElementById('adminEmail');
+  const adminPasswordInput = document.getElementById('adminPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginStatus = document.getElementById('loginStatus');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const adminInfo = document.getElementById('adminInfo');
+
+  const adminDateInput = document.getElementById('adminDate');
+  const adminLinesTextarea = document.getElementById('adminLines');
+  const fileInput = document.getElementById('fileInput');
+  const adminSaveBtn = document.getElementById('adminSaveBtn');
+  const adminDeleteBtn = document.getElementById('adminDeleteBtn');
+  const saveProgress = document.getElementById('saveProgress');
+  const linesCount = document.getElementById('linesCount');
+
+  const userDateInput = document.getElementById('userDate');
+  const userLinesTextarea = document.getElementById('userLines');
+  const userMatchBtn = document.getElementById('userMatchBtn');
+  const resultPre = document.getElementById('resultPre');
+
+  const copyAllBtn = document.getElementById('copyAllBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const printBtn = document.getElementById('printBtn');
+
+  const userFileInput = document.getElementById('userFileInput');
+
+  // Tabs switch
+  function showAdmin(show) {
+    if (show) {
+      adminPanel.classList.remove('hidden');
+      userPanel.classList.add('hidden');
+      tabAdmin.classList.add('active');
+      tabUser.classList.remove('active');
+    } else {
+      adminPanel.classList.add('hidden');
+      userPanel.classList.remove('hidden');
+      tabAdmin.classList.remove('active');
+      tabUser.classList.add('active');
+    }
   }
 
-  async function adminLogin() {
-    const pass = document.getElementById("adminPass").value.trim();
-    if (!pass) {
-      setStatus("adminLoginStatus", "Enter password", "error");
+  tabAdmin.addEventListener('click', () => showAdmin(true));
+  tabUser.addEventListener('click', () => showAdmin(false));
+  showAdmin(false);
+
+  // Auth check for admin email
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      if (user.email.toLowerCase() === "mateen2771@gmail.com") {
+        loginSection.classList.add('hidden');
+        adminControls.classList.remove('hidden');
+        adminInfo.textContent = `Logged in as: ${user.email}`;
+        loginStatus.textContent = '';
+      } else {
+        auth.signOut();
+        loginStatus.textContent = '❌ You are not authorized as admin.';
+      }
+    } else {
+      loginSection.classList.remove('hidden');
+      adminControls.classList.add('hidden');
+      adminInfo.textContent = '';
+      loginStatus.textContent = '';
+    }
+  });
+
+  // Login button
+  loginBtn.addEventListener('click', () => {
+    const email = adminEmailInput.value.trim();
+    const password = adminPasswordInput.value.trim();
+    if (!email || !password) {
+      loginStatus.textContent = 'Enter email and password.';
       return;
     }
-    const hash = await sha256(pass);
-    if (hash === "8e7c1eb28eb0f1be02356d59c83d42e204bf57a56f34402b85882da3524d38c6") {
-      // Success
-      setStatus("adminLoginStatus", "Login successful!", "success");
-      document.getElementById("adminPass").style.display = "none";
-      document.getElementById("adminLoginBtn").style.display = "none";
-      document.getElementById("adminContent").style.display = "block";
-    } else {
-      setStatus("adminLoginStatus", "Incorrect password", "error");
-    }
-  }
+    loginStatus.textContent = 'Logging in...';
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(err => {
+        loginStatus.textContent = 'Login failed: ' + err.message;
+      });
+  });
 
-  function setStatus(id, msg, type="info") {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.className = "status " + type;
-  }
+  // Logout
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut();
+  });
 
-  // File import helpers
-  function readFileToTextarea(fileInput, textareaId) {
-    const file = fileInput.files[0];
+  // Handle admin file import - read lines from file and append into textarea
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
     if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      alert('Please select a .txt file');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
-      document.getElementById(textareaId).value = reader.result.trim();
+      const importedText = reader.result.replace(/\r\n/g, '\n'); // normalize new lines
+      if(adminLinesTextarea.value.trim()) {
+        adminLinesTextarea.value += '\n' + importedText;
+      } else {
+        adminLinesTextarea.value = importedText;
+      }
+      saveProgress.textContent = `Imported ${importedText.split('\n').length} lines from file`;
     };
     reader.readAsText(file);
-  }
-
-  document.getElementById("adminFile").addEventListener("change", e => {
-    readFileToTextarea(e.target, "adminLines");
   });
 
-  document.getElementById("userFile").addEventListener("change", e => {
-    readFileToTextarea(e.target, "userLines");
+  // When admin selects date, load all lines for that date and show count
+  adminDateInput.addEventListener('change', async () => {
+    const date = adminDateInput.value;
+    adminLinesTextarea.value = '';
+    saveProgress.textContent = '';
+    linesCount.textContent = 'Lines saved: 0';
+    if (!date) return;
+
+    try {
+      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      if (chunksSnapshot.empty) {
+        linesCount.textContent = 'Lines saved: 0';
+        return;
+      }
+
+      let allLines = [];
+      chunksSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.lines && Array.isArray(data.lines)) {
+          allLines = allLines.concat(data.lines);
+        }
+      });
+
+      linesCount.textContent = `Lines saved: ${allLines.length}`;
+      adminLinesTextarea.value = allLines.join('\n');
+
+    } catch (e) {
+      linesCount.textContent = 'Error loading lines.';
+      console.error(e);
+    }
   });
 
-  // Admin Save Lines
-  async function adminSaveLines() {
-    const date = document.getElementById("adminDate").value;
-    const linesRaw = document.getElementById("adminLines").value.trim();
+  // Save admin lines with append logic: overwrite full data with updated textarea content, chunked
+  adminSaveBtn.addEventListener('click', async () => {
+    const date = adminDateInput.value;
+    const linesRaw = adminLinesTextarea.value.trim();
     if (!date) {
-      setStatus("adminSaveStatus", "Select a date", "error");
+      saveProgress.textContent = 'Select a date.';
       return;
     }
     if (!linesRaw) {
-      setStatus("adminSaveStatus", "Add or import lines", "error");
+      saveProgress.textContent = 'Add at least one line.';
       return;
     }
-    let newLines = linesRaw.split("\n").map(l => l.trim()).filter(l => l);
-    if (newLines.length === 0) {
-      setStatus("adminSaveStatus", "No valid lines found", "error");
+    const lines = linesRaw.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      saveProgress.textContent = 'Add valid lines.';
       return;
     }
 
-    const docRef = doc(db, "matchlines", date);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      // Append to existing lines
-      const existingLines = docSnap.data().lines || [];
-      const combined = [...existingLines, ...newLines];
-      await setDoc(docRef, { lines: combined });
-      setStatus("adminSaveStatus", `Added ${newLines.length} lines. Total now: ${combined.length}`, "success");
-      updateAdminLineCount(date);
-    } else {
-      // Create new
-      await setDoc(docRef, { lines: newLines });
-      setStatus("adminSaveStatus", `Saved ${newLines.length} lines for ${date}`, "success");
-      updateAdminLineCount(date);
-    }
-  }
+    saveProgress.textContent = 'Saving...';
 
-  // Admin Delete Lines
-  async function adminDeleteLines() {
-    const date = document.getElementById("adminDate").value;
-    if (!date) {
-      setStatus("adminSaveStatus", "Select a date to delete", "error");
-      return;
-    }
-    if (!confirm(`Delete ALL lines for date ${date}? This cannot be undone!`)) return;
-    const docRef = doc(db, "matchlines", date);
-    await deleteDoc(docRef);
-    setStatus("adminSaveStatus", `Deleted all lines for ${date}`, "success");
-    updateAdminLineCount(date);
-  }
+    try {
+      // Delete old chunks for this date first to replace all lines (append meaning whole new content)
+      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      const batchDelete = db.batch();
+      chunksSnapshot.forEach(doc => {
+        batchDelete.delete(doc.ref);
+      });
+      await batchDelete.commit();
 
-  // Update admin line count display
-  async function updateAdminLineCount(date) {
-    if (!date) {
-      setStatus("adminLineCount", "");
-      return;
-    }
-    const docRef = doc(db, "matchlines", date);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const count = docSnap.data().lines?.length || 0;
-      setStatus("adminLineCount", `Total lines saved for ${date}: ${count}`, "info");
-    } else {
-      setStatus("adminLineCount", `No lines saved for ${date}`, "info");
-    }
-  }
+      // Now split new lines into chunks of 500
+      const chunkSize = 500;
+      const chunks = [];
+      for (let i = 0; i < lines.length; i += chunkSize) {
+        chunks.push(lines.slice(i, i + chunkSize));
+      }
 
-  document.getElementById("adminDate").addEventListener("change", e => {
-    updateAdminLineCount(e.target.value);
+      // Save each chunk as a document
+      const batch = db.batch();
+      chunks.forEach((chunkLines, idx) => {
+        const docRef = db.collection('lines').doc(date).collection('chunks').doc('chunk' + idx);
+        batch.set(docRef, { lines: chunkLines });
+      });
+      await batch.commit();
+
+      saveProgress.textContent = `Saved ${lines.length} lines in ${chunks.length} chunks for date ${date}.`;
+      linesCount.textContent = `Lines saved: ${lines.length}`;
+
+    } catch (e) {
+      saveProgress.textContent = 'Error saving data.';
+      console.error(e);
+    }
   });
 
-  // User Show Matches
-  async function userShowMatches() {
-    const date = document.getElementById("userDate").value;
-    const linesRaw = document.getElementById("userLines").value.trim();
+  // Delete all data for selected date
+  adminDeleteBtn.addEventListener('click', async () => {
+    const date = adminDateInput.value;
     if (!date) {
-      setStatus("userMatchStatus", "Select a date", "error");
+      alert('Select a date first.');
       return;
     }
-    if (!linesRaw) {
-      setStatus("userMatchStatus", "Add or import your lines", "error");
-      return;
-    }
-
-    const userLines = linesRaw.split("\n").map(l => l.trim()).filter(l => l);
-    if (userLines.length === 0) {
-      setStatus("userMatchStatus", "No valid lines found", "error");
-      return;
-    }
-
-    const docRef = doc(db, "matchlines", date);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
-      setStatus("userMatchStatus", "No data found for this date", "error");
-      document.getElementById("userMatchedLines").value = "";
-      return;
-    }
-    const adminLines = docSnap.data().lines || [];
-
-    // Find matches ignoring case
-    const matches = userLines.filter(uLine =>
-      adminLines.some(aLine => aLine.toLowerCase() === uLine.toLowerCase())
-    );
-
-    if (matches.length === 0) {
-      setStatus("userMatchStatus", "No matching lines found", "info");
-      document.getElementById("userMatchedLines").value = "";
-      return;
-    }
-
-    setStatus("userMatchStatus", `Found ${matches.length} matching line${matches.length > 1 ? 's' : ''}`, "success");
-    document.getElementById("userMatchedLines").value = matches.join("\n");
-  }
-
-  // Copy matched lines to clipboard with animation
-  async function copyMatchedLines() {
-    const text = document.getElementById("userMatchedLines").value;
-    if (!text) {
-      setStatus("copyStatus", "No lines to copy", "error");
+    if (!confirm(`Delete all data for date ${date}? This cannot be undone.`)) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(text);
-      setStatus("copyStatus", "Copied to clipboard!", "success");
-      setTimeout(() => setStatus("copyStatus", ""), 2500);
-    } catch {
-      setStatus("copyStatus", "Copy failed", "error");
+      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      if (chunksSnapshot.empty) {
+        alert('No data to delete for this date.');
+        return;
+      }
+      const batch = db.batch();
+      chunksSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      adminLinesTextarea.value = '';
+      linesCount.textContent = 'Lines saved: 0';
+      saveProgress.textContent = 'Deleted all data for ' + date;
+    } catch (e) {
+      alert('Error deleting data.');
+      console.error(e);
     }
-  }
+  });
 
-  // Tab switching
-  function switchTab(tab) {
-    const adminTab = document.getElementById("tab-admin");
-    const userTab = document.getElementById("tab-user");
-    const adminPanel = document.getElementById("admin");
-    const userPanel = document.getElementById("user");
+  // USER PANEL
 
-    if (tab === "admin") {
-      adminTab.classList.add("active");
-      userTab.classList.remove("active");
-      adminPanel.classList.add("active");
-      userPanel.classList.remove("active");
+  // Import user lines from file into textarea
+  userFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      alert('Please select a .txt file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const importedText = reader.result.replace(/\r\n/g, '\n');
+      if(userLinesTextarea.value.trim()) {
+        userLinesTextarea.value += '\n' + importedText;
+      } else {
+        userLinesTextarea.value = importedText;
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Show / hide copy/export/print buttons
+  function toggleResultButtons(show) {
+    if (show) {
+      copyAllBtn.classList.remove('hidden');
+      exportBtn.classList.remove('hidden');
+      printBtn.classList.remove('hidden');
     } else {
-      adminTab.classList.remove("active");
-      userTab.classList.add("active");
-      adminPanel.classList.remove("active");
-      userPanel.classList.add("active");
+      copyAllBtn.classList.add('hidden');
+      exportBtn.classList.add('hidden');
+      printBtn.classList.add('hidden');
     }
   }
+
+  // User match button
+  userMatchBtn.addEventListener('click', async () => {
+    const date = userDateInput.value;
+    const linesRaw = userLinesTextarea.value.trim();
+
+    resultPre.textContent = '';
+    toggleResultButtons(false);
+
+    if (!date) {
+      resultPre.textContent = '⚠️ Select a date.';
+      return;
+    }
+    if (!linesRaw) {
+      resultPre.textContent = '⚠️ Enter your lines.';
+      return;
+    }
+
+    const userLines = linesRaw.split('\n').map(l => l.trim()).filter(l => l);
+    if (userLines.length === 0) {
+      resultPre.textContent = '⚠️ Enter at least one valid line.';
+      return;
+    }
+
+    resultPre.textContent = '⏳ Loading data... Please wait.';
+    try {
+      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      if (chunksSnapshot.empty) {
+        resultPre.textContent = '❌ No data found for that date.';
+        return;
+      }
+
+      let allAdminLines = [];
+      chunksSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.lines && Array.isArray(data.lines)) {
+          allAdminLines = allAdminLines.concat(data.lines);
+        }
+      });
+
+      const adminLinesSet = new Set(allAdminLines);
+      const matched = userLines.filter(line => adminLinesSet.has(line));
+
+      if (matched.length === 0) {
+        resultPre.textContent = 'ℹ️ No matched lines found.';
+        return;
+      }
+
+      resultPre.textContent = matched.join('\n');
+      toggleResultButtons(true);
+    } catch (e) {
+      console.error(e);
+      resultPre.textContent = '❌ Error loading data.';
+    }
+  });
+
+  // Copy all matched lines
+  copyAllBtn.addEventListener('click', () => {
+    const text = resultPre.textContent.trim();
+    if (!text) {
+      alert('No matched lines to copy.');
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✅ All matched lines copied to clipboard!');
+    }).catch(() => {
+      alert('❌ Copy failed. Try manually.');
+    });
+  });
+
+  // Export matched lines to Excel
+  exportBtn.addEventListener('click', () => {
+    const text = resultPre.textContent.trim();
+    if (!text) {
+      alert('No matched lines to export.');
+      return;
+    }
+    const lines = text.split('\n').map(l => [l]); // array of arrays for XLSX
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(lines);
+    XLSX.utils.book_append_sheet(wb, ws, 'MatchedLines');
+    XLSX.writeFile(wb, 'matched_lines.xlsx');
+  });
+
+  // Print matched lines
+  printBtn.addEventListener('click', () => {
+    const text = resultPre.textContent.trim();
+    if (!text) {
+      alert('No matched lines to print.');
+      return;
+    }
+    const newWin = window.open('', '_blank');
+    newWin.document.write('<pre style="font-size:16px; padding:15px;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>');
+    newWin.document.close();
+    newWin.focus();
+    newWin.print();
+  });
 </script>
+
 </body>
 </html>
