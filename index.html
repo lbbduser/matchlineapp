@@ -222,20 +222,20 @@
 
   const userFileInput = document.getElementById('userFileInput');
 
-  // Tabs switch with forced logout when leaving admin panel
+  // Tabs switch
   function showAdmin(show) {
     if (show) {
       adminPanel.classList.remove('hidden');
       userPanel.classList.add('hidden');
       tabAdmin.classList.add('active');
       tabUser.classList.remove('active');
+      // Force login section show every time admin tab clicked
+      auth.signOut(); // Sign out to force login again
     } else {
       adminPanel.classList.add('hidden');
       userPanel.classList.remove('hidden');
       tabAdmin.classList.remove('active');
       tabUser.classList.add('active');
-      // Force logout admin when switching to user tab
-      auth.signOut();
     }
   }
 
@@ -260,6 +260,11 @@
       adminControls.classList.add('hidden');
       adminInfo.textContent = '';
       loginStatus.textContent = '';
+      adminDateInput.value = '';
+      adminLinesTextarea.value = '';
+      linesCount.textContent = 'Lines saved: 0';
+      saveProgress.textContent = '';
+      fileInput.value = '';
     }
   });
 
@@ -313,8 +318,10 @@
     if (!date) return;
 
     try {
+      console.log("Loading lines for date:", date);
       const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       if (chunksSnapshot.empty) {
+        console.log("No chunks found for this date");
         linesCount.textContent = 'Lines saved: 0';
         return;
       }
@@ -322,6 +329,7 @@
       let allLines = [];
       chunksSnapshot.forEach(doc => {
         const data = doc.data();
+        console.log("Chunk data:", data);
         if (data.lines && Array.isArray(data.lines)) {
           allLines = allLines.concat(data.lines);
         }
@@ -331,9 +339,12 @@
       adminLinesTextarea.value = allLines.join('\n');
 
     } catch (e) {
+      console.error("Load error:", e);
       linesCount.textContent = 'Error loading lines.';
-      console.error(e);
     }
+
+    // Save date locally for reload convenience
+    localStorage.setItem('lastAdminDate', date);
   });
 
   // Save admin lines with append logic: overwrite full data with updated textarea content, chunked
@@ -371,13 +382,15 @@
     }, 1000);
 
     try {
-      // Delete all old chunks before saving updated lines (overwrite)
+      console.log("Saving lines for date:", date);
+
+      // Delete old chunks
       const oldChunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       const batchDelete = db.batch();
       oldChunksSnapshot.forEach(doc => batchDelete.delete(doc.ref));
       await batchDelete.commit();
 
-      // Save new lines in chunks
+      // Save new chunks
       const chunkSize = 1000;
       const chunks = [];
       for (let i = 0; i < lines.length; i += chunkSize) {
@@ -391,7 +404,7 @@
       });
       await batchSave.commit();
 
-      saveFinished = true; // stop countdown early
+      saveFinished = true;
       clearInterval(countdownInterval);
       saveProgress.textContent = '';
       linesCount.textContent = `Lines saved: ${lines.length}`;
@@ -399,135 +412,53 @@
       alert(`✅ Saved ${lines.length} lines for date ${date}!`);
 
       fileInput.value = '';
+      console.log("Data saved successfully!");
+
+      // Save date locally for reload convenience
+      localStorage.setItem('lastAdminDate', date);
 
     } catch (e) {
       clearInterval(countdownInterval);
       saveProgress.textContent = '❌ Error saving. Try again.';
-      console.error(e);
+      console.error("Save error:", e);
+      alert('❌ Error saving. Check console.');
     }
   });
 
-  // Delete all chunks under a date
+  // Delete all data for a date
   adminDeleteBtn.addEventListener('click', async () => {
     const date = adminDateInput.value;
     if (!date) {
       alert('Select a date to delete.');
       return;
     }
-    if (!confirm(`Are you sure you want to DELETE all data for date ${date}? This action cannot be undone.`)) return;
+    if (!confirm(`Delete ALL saved lines for date ${date}? This cannot be undone.`)) return;
 
     try {
-      // Get all chunk docs
       const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
       if (chunksSnapshot.empty) {
-        alert('No data found for this date to delete.');
+        alert('No data to delete for this date.');
         return;
       }
+      const batchDelete = db.batch();
+      chunksSnapshot.forEach(doc => batchDelete.delete(doc.ref));
+      await batchDelete.commit();
 
-      // Batch delete all chunks
-      const batch = db.batch();
-      chunksSnapshot.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-
-      await batch.commit();
-
-      alert(`✅ All data for date ${date} deleted successfully!`);
-
-      saveProgress.textContent = `Deleted all data for ${date}. You can now import new files for this date.`;
+      alert('✅ Deleted all lines for date ' + date);
       adminLinesTextarea.value = '';
       linesCount.textContent = 'Lines saved: 0';
-      fileInput.value = '';
+      saveProgress.textContent = '';
+
+      // Remove saved date in localStorage
+      localStorage.removeItem('lastAdminDate');
 
     } catch (e) {
-      alert('❌ Error deleting data.');
-      console.error(e);
+      console.error("Delete error:", e);
+      alert('❌ Error deleting data. Check console.');
     }
   });
 
-  // User show matches, reading all chunks
-  userMatchBtn.addEventListener('click', async () => {
-    const date = userDateInput.value;
-    const linesRaw = userLinesTextarea.value.trim();
-    if (!date) {
-      resultDiv.innerHTML = '<p>Select a date.</p>';
-      exportBtn.classList.add('hidden');
-      printBtn.classList.add('hidden');
-      return;
-    }
-    if (!linesRaw) {
-      resultDiv.innerHTML = '<p>Enter your lines.</p>';
-      exportBtn.classList.add('hidden');
-      printBtn.classList.add('hidden');
-      return;
-    }
-    const userLines = linesRaw.split('\n').map(l => l.trim()).filter(l => l);
-    if (userLines.length === 0) {
-      resultDiv.innerHTML = '<p>Enter at least one valid line.</p>';
-      exportBtn.classList.add('hidden');
-      printBtn.classList.add('hidden');
-      return;
-    }
-    resultDiv.innerHTML = 'Loading...';
-    try {
-      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
-      if (chunksSnapshot.empty) {
-        resultDiv.innerHTML = '<p>No data for that date.</p>';
-        exportBtn.classList.add('hidden');
-        printBtn.classList.add('hidden');
-        return;
-      }
-
-      let allAdminLines = [];
-      chunksSnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.lines && Array.isArray(data.lines)) {
-          allAdminLines = allAdminLines.concat(data.lines);
-        }
-      });
-
-      // Find matched lines
-      const matched = userLines.filter(line => allAdminLines.includes(line));
-
-      if (matched.length === 0) {
-        resultDiv.innerHTML = '<p>No matched lines found.</p>';
-        exportBtn.classList.add('hidden');
-        printBtn.classList.add('hidden');
-        return;
-      }
-
-      // Show matched lines count + copy all button + list lines
-      const matchCount = matched.length;
-      let html = `<p>Matched lines: <strong>${matchCount}</strong></p>`;
-      html += `<button id="copyAllBtn" class="copy-btn" style="margin-bottom:10px;">Copy All Matched Lines</button>`;
-      html += `<div>`;
-      matched.forEach(line => {
-        html += `<div class="match-line">${line}</div>`;
-      });
-      html += `</div>`;
-
-      resultDiv.innerHTML = html;
-      exportBtn.classList.remove('hidden');
-      printBtn.classList.remove('hidden');
-
-      // Attach copy all click event
-      document.getElementById('copyAllBtn').addEventListener('click', () => {
-        navigator.clipboard.writeText(matched.join('\n')).then(() => {
-          alert('All matched lines copied to clipboard!');
-        }).catch(() => {
-          alert('Copy failed. Try manually.');
-        });
-      });
-
-    } catch (e) {
-      resultDiv.innerHTML = '<p>Error loading data.</p>';
-      exportBtn.classList.add('hidden');
-      printBtn.classList.add('hidden');
-      console.error(e);
-    }
-  });
-
-  // User file import (append)
+  // User file import
   userFileInput.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -537,53 +468,134 @@
     }
     const reader = new FileReader();
     reader.onload = () => {
-      const importedText = reader.result.replace(/\r\n/g, '\n'); // normalize new lines
-      if(userLinesTextarea.value.trim()) {
-        userLinesTextarea.value += '\n' + importedText;
-      } else {
-        userLinesTextarea.value = importedText;
-      }
+      const importedText = reader.result.replace(/\r\n/g, '\n');
+      userLinesTextarea.value = importedText.trim();
     };
     reader.readAsText(file);
   });
 
-  // Export matched results to Excel
-  exportBtn.addEventListener('click', () => {
-    const matchedLines = [];
-    const matchDivs = document.querySelectorAll('#result .match-line');
-    matchDivs.forEach(div => {
-      matchedLines.push(div.textContent);
-    });
-    if (matchedLines.length === 0) {
-      alert('No matches to export.');
+  // User matching logic: find saved lines for date, show those that match user lines
+  userMatchBtn.addEventListener('click', async () => {
+    const date = userDateInput.value;
+    const userInput = userLinesTextarea.value.trim();
+
+    resultDiv.innerHTML = '';
+    exportBtn.classList.add('hidden');
+    printBtn.classList.add('hidden');
+
+    if (!date) {
+      alert('Select a date');
       return;
     }
-    const worksheet = XLSX.utils.aoa_to_sheet([['Matched Lines'], ...matchedLines.map(m => [m])]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Matches");
-    XLSX.writeFile(workbook, "matched_lines.xlsx");
+    if (!userInput) {
+      alert('Enter your lines');
+      return;
+    }
+
+    try {
+      const userLines = userInput.split('\n').map(l => l.trim()).filter(l => l);
+      if (userLines.length === 0) {
+        alert('Enter at least one valid line');
+        return;
+      }
+
+      // Load saved lines for date
+      const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+      if (chunksSnapshot.empty) {
+        alert('No saved lines found for this date');
+        return;
+      }
+
+      let savedLines = [];
+      chunksSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.lines && Array.isArray(data.lines)) {
+          savedLines = savedLines.concat(data.lines);
+        }
+      });
+
+      // Match: keep saved lines that are present in user input
+      const userSet = new Set(userLines);
+      const matchedLines = savedLines.filter(line => userSet.has(line));
+
+      if (matchedLines.length === 0) {
+        resultDiv.innerHTML = `<p>No matches found.</p>`;
+        return;
+      }
+
+      // Show matches with copy buttons
+      resultDiv.innerHTML = '';
+      matchedLines.forEach(line => {
+        const div = document.createElement('div');
+        div.className = 'match-line';
+        div.textContent = line;
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(line).then(() => {
+            alert('Copied: ' + line);
+          });
+        };
+        div.appendChild(copyBtn);
+        resultDiv.appendChild(div);
+      });
+
+      exportBtn.classList.remove('hidden');
+      printBtn.classList.remove('hidden');
+
+    } catch (e) {
+      alert('Error: ' + e.message);
+      console.error(e);
+    }
+  });
+
+  // Export matched results to Excel
+  exportBtn.addEventListener('click', () => {
+    const matches = Array.from(resultDiv.querySelectorAll('.match-line'))
+      .map(div => div.firstChild.textContent);
+
+    if (matches.length === 0) {
+      alert('No results to export');
+      return;
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([['Matched Lines'], ...matches.map(m => [m])]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Matches');
+    XLSX.writeFile(wb, 'matched_lines.xlsx');
   });
 
   // Print matched results
   printBtn.addEventListener('click', () => {
-    const matchDivs = document.querySelectorAll('#result .match-line');
-    if (matchDivs.length === 0) {
-      alert('No matches to print.');
+    const printContent = resultDiv.innerHTML;
+    if (!printContent) {
+      alert('No results to print');
       return;
     }
-    let printContent = '';
-    matchDivs.forEach(div => {
-      printContent += div.textContent + '\n';
-    });
-    const printWindow = window.open('', '', 'height=600,width=400');
-    printWindow.document.write('<html><head><title>Print Matches</title>');
-    printWindow.document.write('<style>body{font-family:sans-serif; padding:10px;} pre {font-family: monospace; white-space: pre-wrap;}</style>');
-    printWindow.document.write('</head><body><pre>' + printContent + '</pre></body></html>');
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    const newWin = window.open('', '', 'width=600,height=400');
+    newWin.document.write('<html><head><title>Print Matches</title></head><body style="background:#111;color:#eee;font-family:sans-serif;">');
+    newWin.document.write(printContent);
+    newWin.document.write('</body></html>');
+    newWin.document.close();
+    newWin.focus();
+    setTimeout(() => {
+      newWin.print();
+      newWin.close();
+    }, 300);
   });
+
+  // Load last admin date and auto-load saved lines on page load
+  window.addEventListener('load', () => {
+    const lastDate = localStorage.getItem('lastAdminDate');
+    if (lastDate) {
+      adminDateInput.value = lastDate;
+      // Trigger loading admin data for that date
+      const event = new Event('change');
+      adminDateInput.dispatchEvent(event);
+    }
+  });
+
 </script>
 
 </body>
