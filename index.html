@@ -488,21 +488,23 @@
       return;
     }
     if (!userInput) {
-      alert('Enter your lines');
+      alert('Enter at least one line');
       return;
     }
 
-    try {
-      const userLines = userInput.split('\n').map(l => l.trim()).filter(l => l);
-      if (userLines.length === 0) {
-        alert('Enter at least one valid line');
-        return;
-      }
+    const userLines = userInput.split('\n').map(l => l.trim()).filter(l => l);
+    if (userLines.length === 0) {
+      alert('Enter at least one valid line');
+      return;
+    }
 
-      // Load saved lines for date
+    // Load saved lines chunks for date
+    try {
+      resultDiv.innerHTML = '<p style="color:#0ff;">Loading saved lines...</p>';
       const chunksSnapshot = await db.collection('lines').doc(date).collection('chunks').get();
+
       if (chunksSnapshot.empty) {
-        alert('No saved lines found for this date');
+        resultDiv.innerHTML = '<p style="color:#f44;">No saved lines found for this date.</p>';
         return;
       }
 
@@ -514,88 +516,135 @@
         }
       });
 
-      // Match: keep saved lines that are present in user input
-      const userSet = new Set(userLines);
-      const matchedLines = savedLines.filter(line => userSet.has(line));
+      // Create a Set for fast lookup
+      const savedSet = new Set(savedLines);
+
+      // Filter matched lines
+      const matchedLines = userLines.filter(line => savedSet.has(line));
 
       if (matchedLines.length === 0) {
-        resultDiv.innerHTML = `<p>No matches found.</p>`;
+        resultDiv.innerHTML = `<p style="color:#ff8800;">No matches found.</p>`;
         return;
       }
 
-      // Show matches with copy buttons
-      resultDiv.innerHTML = '';
-      matchedLines.forEach(line => {
-        const div = document.createElement('div');
-        div.className = 'match-line';
-        div.textContent = line;
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn';
-        copyBtn.textContent = 'Copy';
-        copyBtn.onclick = () => {
-          navigator.clipboard.writeText(line).then(() => {
-            alert('Copied: ' + line);
+      // Show amount matched
+      const amountDiv = document.createElement('p');
+      amountDiv.style.color = '#0f0';
+      amountDiv.style.fontWeight = '700';
+      amountDiv.textContent = `Total matched lines: ${matchedLines.length}`;
+      resultDiv.appendChild(amountDiv);
+
+      // Show all matched lines in one big textarea box + copy button
+      const matchedTextarea = document.createElement('textarea');
+      matchedTextarea.id = 'allMatchesText';
+      matchedTextarea.rows = Math.min(matchedLines.length + 2, 25);
+      matchedTextarea.readOnly = true;
+      matchedTextarea.value = matchedLines.join('\n');
+      matchedTextarea.style.background = '#222';
+      matchedTextarea.style.color = '#0f0';
+      matchedTextarea.style.fontFamily = 'monospace';
+      matchedTextarea.style.fontSize = '14px';
+      matchedTextarea.style.borderRadius = '8px';
+      matchedTextarea.style.padding = '10px';
+      matchedTextarea.style.marginTop = '8px';
+      matchedTextarea.style.width = '100%';
+      matchedTextarea.style.boxSizing = 'border-box';
+
+      resultDiv.appendChild(matchedTextarea);
+
+      // Copy all button
+      const copyAllBtn = document.createElement('button');
+      copyAllBtn.textContent = 'Copy All Matches';
+      copyAllBtn.style.marginTop = '10px';
+      copyAllBtn.style.backgroundColor = '#00cc99';
+      copyAllBtn.style.color = '#000';
+      copyAllBtn.style.fontWeight = '700';
+      copyAllBtn.style.padding = '8px 12px';
+      copyAllBtn.style.border = 'none';
+      copyAllBtn.style.borderRadius = '8px';
+      copyAllBtn.style.cursor = 'pointer';
+      copyAllBtn.style.userSelect = 'none';
+
+      resultDiv.appendChild(copyAllBtn);
+
+      copyAllBtn.addEventListener('click', () => {
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(matchedTextarea.value).then(() => {
+            alert(`Copied all ${matchedLines.length} matched lines!`);
+          }).catch(() => {
+            // fallback
+            fallbackCopyTextToClipboard(matchedTextarea.value);
           });
-        };
-        div.appendChild(copyBtn);
-        resultDiv.appendChild(div);
+        } else {
+          // fallback
+          fallbackCopyTextToClipboard(matchedTextarea.value);
+        }
       });
 
+      function fallbackCopyTextToClipboard(text) {
+        try {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+
+          // Avoid scrolling to bottom
+          textArea.style.top = "0";
+          textArea.style.left = "0";
+          textArea.style.position = "fixed";
+
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+
+          if (successful) {
+            alert(`Copied all matched lines!`);
+          } else {
+            alert('Failed to copy automatically. Please copy manually.');
+          }
+        } catch (err) {
+          alert('Failed to copy automatically. Please copy manually.');
+        }
+      }
+
+      // Show Export and Print buttons
       exportBtn.classList.remove('hidden');
       printBtn.classList.remove('hidden');
 
+      // Export button click
+      exportBtn.onclick = () => {
+        const wb = XLSX.utils.book_new();
+        const wsData = matchedLines.map(line => [line]);
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, "Matches");
+        XLSX.writeFile(wb, `matched_lines_${date}.xlsx`);
+      };
+
+      // Print button click
+      printBtn.onclick = () => {
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write('<pre style="font-family: monospace; font-size:14px;">' + matchedLines.join('\n') + '</pre>');
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+      };
+
     } catch (e) {
-      alert('Error: ' + e.message);
-      console.error(e);
+      console.error('Error fetching saved lines:', e);
+      resultDiv.innerHTML = `<p style="color:#f44;">Error loading saved lines. Try again.</p>`;
     }
   });
 
-  // Export matched results to Excel
-  exportBtn.addEventListener('click', () => {
-    const matches = Array.from(resultDiv.querySelectorAll('.match-line'))
-      .map(div => div.firstChild.textContent);
-
-    if (matches.length === 0) {
-      alert('No results to export');
-      return;
-    }
-
-    const ws = XLSX.utils.aoa_to_sheet([['Matched Lines'], ...matches.map(m => [m])]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Matches');
-    XLSX.writeFile(wb, 'matched_lines.xlsx');
-  });
-
-  // Print matched results
-  printBtn.addEventListener('click', () => {
-    const printContent = resultDiv.innerHTML;
-    if (!printContent) {
-      alert('No results to print');
-      return;
-    }
-    const newWin = window.open('', '', 'width=600,height=400');
-    newWin.document.write('<html><head><title>Print Matches</title></head><body style="background:#111;color:#eee;font-family:sans-serif;">');
-    newWin.document.write(printContent);
-    newWin.document.write('</body></html>');
-    newWin.document.close();
-    newWin.focus();
-    setTimeout(() => {
-      newWin.print();
-      newWin.close();
-    }, 300);
-  });
-
-  // Load last admin date and auto-load saved lines on page load
+  // Load last saved admin date if available
   window.addEventListener('load', () => {
-    const lastDate = localStorage.getItem('lastAdminDate');
-    if (lastDate) {
-      adminDateInput.value = lastDate;
-      // Trigger loading admin data for that date
-      const event = new Event('change');
-      adminDateInput.dispatchEvent(event);
+    const lastAdminDate = localStorage.getItem('lastAdminDate');
+    if (lastAdminDate) {
+      adminDateInput.value = lastAdminDate;
+      adminDateInput.dispatchEvent(new Event('change'));
     }
   });
-
 </script>
 
 </body>
