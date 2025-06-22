@@ -492,7 +492,7 @@
       return;
     }
 
-    const userLines = userInput.split('\n').map(l => l.trim()).filter(l => l);
+    const userLines = [...new Set(userInput.split('\n').map(l => l.trim()).filter(l => l))];
     if (userLines.length === 0) {
       alert('Enter at least one valid line');
       return;
